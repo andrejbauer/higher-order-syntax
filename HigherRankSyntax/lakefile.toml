@@ -1,0 +1,13 @@
+name = "HigherRankSyntax"
+defaultTargets = ["HigherRankSyntax"]
+
+[leanOptions]
+pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+autoImplicit = false
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4.git"
+
+[[lean_lib]]
+name = "HigherRankSyntax"

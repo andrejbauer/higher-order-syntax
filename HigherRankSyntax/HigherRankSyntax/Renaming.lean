@@ -1,4 +1,4 @@
-import HigherRankedSyntax.Syntax
+import HigherRankSyntax.Syntax
 
 import Init.Notation
 
