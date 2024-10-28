@@ -34,8 +34,7 @@ def extend_comp {γ δ η θ} {g : δ →ʳ η} {f : γ →ʳ δ}:
   funext α x
   cases x <;> rfl
 
-  def act {γ δ} (f : γ →ʳ δ) : Expr γ → Expr δ
+def act {γ δ} (f : γ →ʳ δ) : Expr γ → Expr δ
   | x ◃ ts => f x ◃ (fun y => act (f ⇑ʳ _) (ts y))
-  termination_by
 
 end Renaming
