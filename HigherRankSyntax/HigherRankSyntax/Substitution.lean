@@ -6,9 +6,10 @@ infix:25 " →ˢ " => Substitution
 
 namespace Substitution
 
-/- At the moment this is still unsafe, as Lean does not see why recursion terminates. -/
-unsafe def id {{γ}} : γ →ˢ γ :=
+def id {{γ}} : γ →ˢ γ :=
   fun {α} x => x.varLeft ◃ (fun {β} (y : Var β α) => ⟦ (fun {_} z => z.varRight) ⇑ʳ β ⟧ʳ (id y))
+termination_by γ.rank
+decreasing_by apply rank_Var_lt ; assumption
 
 /- However, it looks like in practice it does terminate -/
 #check @id (⟦ 𝟘 ⟧ ⊕ ⟦ 𝟘 ⟧) _ Var.varHere.varLeft
