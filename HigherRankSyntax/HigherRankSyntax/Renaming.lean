@@ -1,4 +1,5 @@
 import HigherRankSyntax.Syntax
+import Mathlib.CategoryTheory.Category.Basic
 
 import Init.Notation
 
@@ -11,10 +12,16 @@ def id {γ} : γ →ʳ γ := fun {{_}} x => x
 
 notation "𝟙ʳ" => Renaming.id
 
-def comp {γ δ η} (g : δ →ʳ η) (f : γ →ʳ δ) : γ →ʳ η :=
+def comp {γ δ η} (f : γ →ʳ δ) (g : δ →ʳ η) : γ →ʳ η :=
   fun {{_}} x => g (f x)
 
-infixr:90 " ∘ʳ " => Renaming.comp
+notation:90 g:90 " ∘ʳ " f:90 => Renaming.comp f g
+
+/-- The category of shapes and renamings -/
+instance ShapeCat : CategoryTheory.Category Shape where
+  Hom := Renaming
+  id := @Renaming.id
+  comp := comp
 
 def extend {γ δ} (f : γ →ʳ δ) (η) : γ ⊕ η →ʳ δ ⊕ η
 | _, .varLeft x => .varLeft (f x)
@@ -48,6 +55,5 @@ theorem act_comp {γ} {e : Expr γ} :
 
 theorem comp_assoc {γ δ η θ} {f : γ →ʳ δ} {g : δ →ʳ η} {h : η →ʳ θ} :
   (h ∘ʳ g) ∘ʳ f = h ∘ʳ (g ∘ʳ f) := by rfl
-
 
 end Renaming
