@@ -37,7 +37,3 @@ inductive Expr : Shape → Type where
 abbrev Arg γ δ := Expr (γ ⊕ δ)
 
 infix:80 " ◃ " => Expr.apply
-
-def Substitution α γ := ∀ {β}, Var β α → Arg γ β
-
-infix:25 " →ˢ " => Substitution
