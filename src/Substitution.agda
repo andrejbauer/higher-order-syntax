@@ -123,20 +123,38 @@ module Substitution where
   lift-⊕ ρ τ = refl
 
   -- Auxiliary substitution function
-  {-# TERMINATING #-}
-  sbs : ∀ {γ δ θ} (ρ : γ →ʳ θ) (f : δ →ˢ θ) → Expr (γ ⊕ δ) → Expr θ
-  sbs ρ f (var-left x ` ts) = ρ ∙ x `` λ z → sbs (in-left ∘ʳ ρ) (⇑ˢ f) ([ assoc-right ]ʳ ts ∙ z)
-  sbs ρ f (var-right x ` ts) = sbs 𝟙ʳ (tabulate (λ z → sbs (in-left ∘ʳ ρ) (⇑ˢ f) ([ assoc-right ]ʳ ts ∙ z))) (f ∙ x)
+  -- {-# TERMINATING #-}
+  -- sbs : ∀ {γ δ θ} (ρ : γ →ʳ θ) (f : δ →ˢ θ) → Expr (γ ⊕ δ) → Expr θ
+  -- sbs ρ f (var-left x ` ts) = ρ ∙ x `` λ z → sbs (in-left ∘ʳ ρ) (⇑ˢ f) ([ assoc-right ]ʳ ts ∙ z)
+  -- sbs ρ f (var-right x ` ts) = sbs 𝟙ʳ (tabulate (λ z → sbs (in-left ∘ʳ ρ) (⇑ˢ f) ([ assoc-right ]ʳ ts ∙ z))) (f ∙ x)
 
-  -- The action of substitution
+  data Focus : Set where
+    focus-here : Focus
+    focus-left : Focus → Shape → Focus
+    focus-right : Shape → Focus → Focus
+
+  focus-shape : Shape → Focus → Shape
+  focus-shape θ focus-here = θ
+  focus-shape θ (focus-left f γ) = focus-shape θ f ⊕ γ
+  focus-shape θ (focus-right γ f) = γ ⊕ focus-shape θ f
+
   infixr 6 [_]ˢ_
-  [_]ˢ_ : ∀ {γ δ} (f : γ →ˢ δ) → Expr γ → Expr δ
-  [ f ]ˢ e = sbs 𝟙ʳ f ([ in-right ]ʳ e)
-
-  -- Composition of substitutions
   infixl 6 _∘ˢ_
   _∘ˢ_ : ∀ {γ δ θ} (g : δ →ˢ θ) (f : γ →ˢ δ) → γ →ˢ θ
-  g ∘ˢ f = tabulate λ x → [ ⇑ˢ g ]ˢ f ∙ x
+  [_]ˢ_ : ∀ {γ δ} (f : γ →ˢ δ) → Expr γ → Expr δ
+
+  sbs : ∀ (foc : Focus) {γ δ} (g : γ →ˢ δ) → Expr (focus-shape γ foc) → Expr (focus-shape δ foc)
+  sbs focus-here g e =  [ g ]ˢ e
+  sbs (focus-left foc γ) g x = {!!}
+  sbs (focus-right x foc) g e = {!!}
+
+
+  -- The action of substitution
+
+  -- [ f ]ˢ (x ` ts) = sbs (f ∘ˢ ts) (f ∙ x)
+
+  -- -- Composition of substitutions
+  -- g ∘ˢ f = tabulate λ x → [ ⇑ˢ g ]ˢ f ∙ x
 
   -- -- Basic properties of substitution
   -- ∘ˢ-∙ : ∀ {γ δ θ} (g : δ →ˢ θ) (f : γ →ˢ δ) {α} (x : α ∈ γ) →
@@ -147,42 +165,42 @@ module Substitution where
   --        [ g ∘ˢ f ]ˢ e ≡ [ g ]ˢ [ f ]ˢ e
   -- [∘]ˢ f g (x ` ts) = {!!}
 
-  sbs-lift : ∀ {γ δ θ} (ρ : γ →ʳ θ) (τ : δ →ʳ θ) (e : Expr (γ ⊕ δ)) →
-              sbs ρ (lift τ) e ≡ [ ρ ⊕ τ ]ʳ e
-  sbs-lift ρ τ (var-left x ` ts) =
-    ≡-`
-      refl
-      (λ z → trans
-               (tabulate-∙ (λ z → sbs (in-left ∘ʳ ρ) (⇑ˢ (lift τ)) ([ assoc-right ]ʳ ts ∙ z)))
-               (trans
-                  {!!}
-                  (sym (ʳ∘ˢ-∙ {ρ = ρ ⊕ τ} {ts = ts} {x = z}))))
-  sbs-lift ρ τ (var-right x ` ts) =
-    trans
-      (cong (sbs 𝟙ʳ _) (lift-∙ τ x))
-      (≡-` 𝟙ʳ-≡ λ z → {!!})
+  -- sbs-lift : ∀ {γ δ θ} (ρ : γ →ʳ θ) (τ : δ →ʳ θ) (e : Expr (γ ⊕ δ)) →
+  --             sbs ρ (lift τ) e ≡ [ ρ ⊕ τ ]ʳ e
+  -- sbs-lift ρ τ (var-left x ` ts) =
+  --   ≡-`
+  --     refl
+  --     (λ z → trans
+  --              (tabulate-∙ (λ z → sbs (in-left ∘ʳ ρ) (⇑ˢ (lift τ)) ([ assoc-right ]ʳ ts ∙ z)))
+  --              (trans
+  --                 {!!}
+  --                 (sym (ʳ∘ˢ-∙ {ρ = ρ ⊕ τ} {ts = ts} {x = z}))))
+  -- sbs-lift ρ τ (var-right x ` ts) =
+  --   trans
+  --     (cong (sbs 𝟙ʳ _) (lift-∙ τ x))
+  --     (≡-` 𝟙ʳ-≡ λ z → {!!})
 
-  [lift]ˢ : ∀ {γ δ} (ρ : γ →ʳ δ) (e : Expr γ) → [ lift ρ ]ˢ e ≡ [ ρ ]ʳ e
-  [lift]ˢ ρ (x ` ts) = {!!}
+  -- [lift]ˢ : ∀ {γ δ} (ρ : γ →ʳ δ) (e : Expr γ) → [ lift ρ ]ˢ e ≡ [ ρ ]ʳ e
+  -- [lift]ˢ ρ (x ` ts) = {!!}
 
-  -- lift-∘ˢ : ∀ {γ δ θ} (ρ : δ →ʳ θ) (f : γ →ˢ δ) → lift ρ ∘ˢ f ≡ ρ ʳ∘ˢ f
-  -- lift-∘ˢ {γ = γ} ρ f = shape-≡ λ x → E x
-  --   where
-  --     open ≡-Reasoning
-  --     E : ∀ {α} (x : α ∈ γ) → (lift ρ ∘ˢ f) ∙ x ≡ (ρ ʳ∘ˢ f) ∙ x
-  --     E x =
-  --       begin
-  --         (lift ρ ∘ˢ f) ∙ x
-  --           ≡⟨ ∘ˢ-∙ (lift ρ) f x ⟩
-  --         [ ⇑ˢ (lift ρ) ]ˢ f ∙ x
-  --           ≡⟨ cong ([_]ˢ f ∙ x) (⇑ˢ-lift ρ) ⟩
-  --         [ lift (⇑ʳ ρ) ]ˢ f ∙ x
-  --           ≡⟨ [lift]ˢ (⇑ʳ ρ) (f ∙ x) ⟩
-  --         [ ⇑ʳ ρ ]ʳ f ∙ x
-  --           ≡⟨ sym (ʳ∘ˢ-∙ {ρ = ρ} {ts = f} {x = x})⟩
-  --         (ρ ʳ∘ˢ f) ∙ x
-  --       ∎
+  -- -- lift-∘ˢ : ∀ {γ δ θ} (ρ : δ →ʳ θ) (f : γ →ˢ δ) → lift ρ ∘ˢ f ≡ ρ ʳ∘ˢ f
+  -- -- lift-∘ˢ {γ = γ} ρ f = shape-≡ λ x → E x
+  -- --   where
+  -- --     open ≡-Reasoning
+  -- --     E : ∀ {α} (x : α ∈ γ) → (lift ρ ∘ˢ f) ∙ x ≡ (ρ ʳ∘ˢ f) ∙ x
+  -- --     E x =
+  -- --       begin
+  -- --         (lift ρ ∘ˢ f) ∙ x
+  -- --           ≡⟨ ∘ˢ-∙ (lift ρ) f x ⟩
+  -- --         [ ⇑ˢ (lift ρ) ]ˢ f ∙ x
+  -- --           ≡⟨ cong ([_]ˢ f ∙ x) (⇑ˢ-lift ρ) ⟩
+  -- --         [ lift (⇑ʳ ρ) ]ˢ f ∙ x
+  -- --           ≡⟨ [lift]ˢ (⇑ʳ ρ) (f ∙ x) ⟩
+  -- --         [ ⇑ʳ ρ ]ʳ f ∙ x
+  -- --           ≡⟨ sym (ʳ∘ˢ-∙ {ρ = ρ} {ts = f} {x = x})⟩
+  -- --         (ρ ʳ∘ˢ f) ∙ x
+  -- --       ∎
 
 
-  -- [𝟙]ˢ : ∀ {γ cl} {e : Expr γ cl} → [ 𝟙ˢ ]ˢ e ≡ e
-  -- [𝟙]ˢ {e = x ` ts} = trans (cong [ 𝟙ˢ ⊕ (𝟙ˢ ∘ˢ ts) ]ˢ_ 𝟙ˢ-∙) {!!}
+  -- -- [𝟙]ˢ : ∀ {γ cl} {e : Expr γ cl} → [ 𝟙ˢ ]ˢ e ≡ e
+  -- -- [𝟙]ˢ {e = x ` ts} = trans (cong [ 𝟙ˢ ⊕ (𝟙ˢ ∘ˢ ts) ]ˢ_ 𝟙ˢ-∙) {!!}

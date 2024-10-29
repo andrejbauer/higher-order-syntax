@@ -24,32 +24,30 @@ abbrev Arity := Shape
 def Shape.rank : Shape → Nat
 | 𝟘 => 0
 | ⟦ γ ⟧  => 1 + rank γ
-| γ ⊕ δ => 1 + max (rank γ) (rank δ)
+| γ ⊕ δ => max (rank γ) (rank δ)
 
 /-- Variables of given arity in a given shape -/
 inductive Var : Arity → Shape → Type where
 | varHere : ∀ {α : Arity}, Var α ⟦ α ⟧
-| varLeft : ∀ {α γ δ}, Var α γ → Var α (γ ⊕ δ)
-| varRight : ∀ {α γ δ}, Var α δ → Var α (γ ⊕ δ)
+| varLeft : ∀ {γ δ} {{α}}, Var α γ → Var α (γ ⊕ δ)
+| varRight : ∀ {γ δ} {{α}}, Var α δ → Var α (γ ⊕ δ)
 
 theorem rank_Var_lt {α γ} (x : Var α γ) : α.rank < γ.rank := by
   induction x
   case varHere => simp
-  case varLeft η δ β _ =>
-    simp [Shape.rank]
-    calc
-      α.rank < η.rank := by assumption
-           _ ≤ max η.rank δ.rank := by exact Nat.le_max_left η.rank δ.rank
-           _ < 1 + max η.rank δ.rank := by refine Nat.lt_add_of_pos_left Nat.zero_lt_one
-  case varRight η δ β _ =>
+  case varLeft δ β α _ _ =>
     simp [Shape.rank]
     calc
       α.rank < δ.rank := by assumption
-           _ ≤ max η.rank δ.rank := by exact Nat.le_max_right η.rank δ.rank
-           _ < 1 + max η.rank δ.rank := by refine Nat.lt_add_of_pos_left Nat.zero_lt_one
+           _ ≤ max δ.rank β.rank := by exact Nat.le_max_left δ.rank β.rank
+  case varRight δ β α _ _ =>
+    simp [Shape.rank]
+    calc
+      α.rank < β.rank := by assumption
+           _ ≤ max δ.rank β.rank := by exact Nat.le_max_right δ.rank β.rank
 
 inductive Expr : Shape → Type where
-| apply : ∀ {α γ}, Var α γ → (∀ {β}, Var β α → Expr (γ ⊕ β)) → Expr γ
+| apply : ∀ {α γ}, Var α γ → (∀ {{β}}, Var β α → Expr (γ ⊕ β)) → Expr γ
 
 abbrev Arg γ δ := Expr (γ ⊕ δ)
 
