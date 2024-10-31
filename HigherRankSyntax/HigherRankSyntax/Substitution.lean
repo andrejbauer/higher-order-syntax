@@ -33,32 +33,18 @@ def opluss (γ : Shape) : List Shape → Shape
 
 infixl:30 " ⊕⊕ " => Substitution.opluss
 
-def subst_bound {δ α} (u : α →ˢ δ) : δ ⊕ α →ˢ δ
-| _, .varLeft x => eta x
-| _, .varRight x => u x
+def act' {δ α : Shape} (u : α →ˢ δ) : ∀ βs, Expr ((δ ⊕ α) ⊕⊕ βs) → Expr (δ ⊕⊕ βs)
+| [], .varLeft x ◃ ts => x ◃ (fun ⦃β⦄ z => act' u [β] (ts z))
+| [], .varRight y ◃ ts => act' (fun ⦃β⦄ z => act' u [β] (ts z)) [] (u y)
+| β :: βs, .varLeft x ◃ ts => _
+| β :: βs, .varRight y ◃ ts => .varRight y ◃ (fun ⦃β'⦄ z => act' u (β' :: β :: βs) (ts z))
 
-mutual
-  def extendMany {γ δ} (u : γ →ˢ δ) : ∀ (ηs : List Shape), γ ⊕⊕ ηs →ˢ δ ⊕⊕ ηs
-    | [], _, x => u x
-    | _ :: ηs, α, .varLeft x => ⟦ .varLeft ⇑ʳ α ⟧ʳ (extendMany u ηs x)
-    | _ :: ηs, _, .varRight x => eta x.varRight
+def act {γ δ} (u : γ →ˢ δ) : Expr γ → Expr δ
+  | x ◃ ts => act' (fun ⦃β⦄ y => act (u ⇑ˢ β) (ts y)) [] (u x)
 
-  def act_unbound {γ δ} (u : γ →ˢ δ) : ∀ (ηs : List Shape), Expr (γ ⊕⊕ ηs) → Expr (δ ⊕⊕ ηs)
-  | [], e => act u e
-  | η :: ηs, .varLeft x ◃ ts => _
-  | η :: ηs, .varRight x ◃ ts => _
+def comp {γ δ θ} (u : γ →ˢ δ) (v : δ →ˢ θ) : γ →ˢ θ
+| β, x => act (v ⇑ˢ β) (u x)
 
-  def act_bound {γ α} (u : α →ˢ γ) : Expr (γ ⊕ α) → Expr γ
-  | .varLeft x ◃ ts => x ◃ ts
-  | .varRight x ◃ ts => u x
-
-  def act {γ δ} (u : γ →ˢ δ) : Expr γ → Expr δ
-    | x ◃ ts => act_bound (fun ⦃β⦄ y => act_unbound u [β] (ts y)) (u x)
-end
-
-
-
-
-notation:90 g:90 " ∘ʳ " f:90 => Renaming.comp f g
+notation:90 g:90 " ∘ˢ " f:90 => Substitution.comp f g
 
 end Substitution
