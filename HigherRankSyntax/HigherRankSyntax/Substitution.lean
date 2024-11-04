@@ -6,23 +6,24 @@ infix:25 " →ˢ " => Substitution
 
 namespace Substitution
 
-def eta {γ} : γ →ˢ γ :=
-  fun {α} x => x.varLeft ◃ (fun {β} (y : Var β α) => ⟦ Var.varRight ⇑ʳ _ ⟧ʳ (eta y))
+def id {γ} : γ →ˢ γ :=
+  fun {α} x => x.varLeft ◃ (fun {β} (y : Var β α) => ⟦ Var.varRight ⇑ʳ _ ⟧ʳ (id y))
 termination_by γ.rank
 decreasing_by apply rank_Var_lt ; assumption
 
-def lift {γ δ} (f : γ →ʳ δ) : γ →ˢ δ :=
-  fun {_} x => eta (f x)
+notation " 𝟙ˢ " => Substitution.id
 
-/- However, it looks like in practice it does terminate -/
-#check @eta (⟦ 𝟘 ⟧ ⊕ ⟦ 𝟘 ⟧) _ Var.varHere.varLeft
-#check @eta (⟦ 𝟘 ⟧ ⊕ ⟦ 𝟘 ⟧) _ Var.varHere.varRight
-#check @eta (⟦ ⟦ 𝟘 ⟧ ⊕ ⟦ 𝟘 ⟧ ⟧) _ Var.varHere
-#check @eta (⟦ ⟦ ⟦ 𝟘 ⟧ ⊕ ⟦ 𝟘 ⟧ ⟧ ⟧) _ Var.varHere
+def lift {γ δ} (f : γ →ʳ δ) : γ →ˢ δ :=
+  fun {_} x => 𝟙ˢ (f x)
+
+#check @id (⟦ 𝟘 ⟧ ⊕ ⟦ 𝟘 ⟧) _ Var.varHere.varLeft
+#check @id (⟦ 𝟘 ⟧ ⊕ ⟦ 𝟘 ⟧) _ Var.varHere.varRight
+#check @id (⟦ ⟦ 𝟘 ⟧ ⊕ ⟦ 𝟘 ⟧ ⟧) _ Var.varHere
+#check @id (⟦ ⟦ ⟦ 𝟘 ⟧ ⊕ ⟦ 𝟘 ⟧ ⟧ ⟧) _ Var.varHere
 
 def extend {γ δ} (u : γ →ˢ δ) η : γ ⊕ η →ˢ δ ⊕ η
 | _, .varLeft x => ⟦ Var.varLeft ⇑ʳ _ ⟧ʳ (u x)
-| _, .varRight y => eta y.varRight
+| _, .varRight y => 𝟙ˢ y.varRight
 
 infixl:95 " ⇑ˢ " => Substitution.extend
 
@@ -62,20 +63,41 @@ lemma reassocRL {γ δ θ} : @assocRight γ δ θ ∘ʳ @assocLeft γ δ θ = �
     · rfl
     · rfl
 
+def unRight {γ} : γ ⊕ 𝟘 →ʳ γ
+| _, .varLeft x => x
+
+lemma unRightLeft {γ} : unRight ∘ʳ @Var.varLeft γ 𝟘 = 𝟙ʳ := by
+  funext α x
+  rfl
+
 -- def act' {δ α : Shape} (u : α →ˢ δ) : ∀ βs, Expr ((δ ⊕ α) ⊕⊕ βs) → Expr (δ ⊕⊕ βs)
 -- | [], .varLeft x ◃ ts => x ◃ (fun ⦃β⦄ z => act' u [β] (ts z))
 -- | [], .varRight y ◃ ts => act' (fun ⦃β⦄ z => act' u [β] (ts z)) [] (u y)
 -- | β :: βs, .varLeft x ◃ ts => _
 -- | β :: βs, .varRight y ◃ ts => .varRight y ◃ (fun ⦃β'⦄ z => act' u (β' :: β :: βs) (ts z))
 
-def act' {α β γ : Shape} (u : β →ˢ α) : Expr ((α ⊕ β) ⊕ γ) → Expr (α ⊕ γ)
-  | .varLeft (.varLeft x) ◃ ts => .varLeft x ◃ (fun ⦃δ⦄ z => ⟦ assocLeft ⟧ʳ act' u (⟦ assocRight ⟧ʳ ts z))
-  | .varLeft (.varRight y) ◃ ts => have A := u y ; sorry
-  | .varRight z ◃ ts => .varRight z ◃ (fun ⦃_⦄ z =>  ⟦ assocLeft ⟧ʳ act' u (⟦ assocRight ⟧ʳ ts z))
+def sum {α β γ} (u : α →ˢ γ) (v : β →ˢ γ) : α ⊕ β →ˢ γ
+| _, .varLeft x => u x
+| _, .varRight y => v y
 
+infix:30 " ⊕ˢ " => Substitution.sum
 
-def act {γ δ} (u : γ →ˢ δ) : Expr γ → Expr δ
-  | x ◃ ts => act' (fun ⦃β⦄ y => act (u ⇑ˢ β) (ts y)) [] (u x)
+def prepend {α β} (u : β →ˢ α) : α ⊕ β →ˢ α := 𝟙ˢ ⊕ˢ u
+
+mutual
+
+  def act' {α β γ : Shape} (u : β →ˢ α) : Expr ((α ⊕ β) ⊕ γ) → Expr (α ⊕ γ)
+    | .varLeft (.varLeft x) ◃ ts => .varLeft x ◃ (fun ⦃δ⦄ z => ⟦ assocLeft ⟧ʳ act' u (⟦ assocRight ⟧ʳ ts z))
+    | .varLeft (@Var.varRight _ _ δ y) ◃ ts =>
+      have u' := fun ⦃θ⦄ (z : Var θ δ) => ⟦ assocLeft ⟧ʳ act' u (⟦ assocRight ⟧ʳ ts z) ;
+      act (lift Var.varLeft ⊕ˢ u') (u y)
+    | .varRight z ◃ ts => .varRight z ◃ (fun ⦃_⦄ z =>  ⟦ assocLeft ⟧ʳ act' u (⟦ assocRight ⟧ʳ ts z))
+
+  def act {γ δ} (u : γ →ˢ δ) : Expr γ → Expr δ
+    | x ◃ ts =>
+      ⟦ unRight ⟧ʳ (act' (fun ⦃β⦄ y => act (u ⇑ˢ β) (ts y)) (⟦ @Var.varLeft _ 𝟘 ⟧ʳ u x))
+
+end
 
 def comp {γ δ θ} (u : γ →ˢ δ) (v : δ →ˢ θ) : γ →ˢ θ
 | β, x => act (v ⇑ˢ β) (u x)
