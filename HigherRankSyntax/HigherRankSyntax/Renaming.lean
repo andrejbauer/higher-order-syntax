@@ -54,4 +54,9 @@ theorem act_comp {γ} {e : Expr γ} :
 theorem comp_assoc {γ δ η θ} {f : γ →ʳ δ} {g : δ →ʳ η} {h : η →ʳ θ} :
   (h ∘ʳ g) ∘ʳ f = h ∘ʳ (g ∘ʳ f) := by rfl
 
+theorem eq_size {γ δ} (f : γ →ʳ δ) (e : Expr γ) : (⟦ f ⟧ʳ e).sizeOf = e.sizeOf := by
+  induction e
+  case apply γ α x ts ih =>
+    sorry
+
 end Renaming

@@ -1,7 +1,7 @@
 import HigherRankSyntax.Syntax
 import HigherRankSyntax.Renaming
 
-def Substitution γ δ := ∀ {{α}}, Var α γ → Arg δ α
+def Substitution γ δ := ∀ {{α}}, Var α γ → Expr (δ ⊕ α)
 infix:25 " →ˢ " => Substitution
 
 namespace Substitution
@@ -86,18 +86,33 @@ def prepend {α β} (u : β →ˢ α) : α ⊕ β →ˢ α := 𝟙ˢ ⊕ˢ u
 
 mutual
 
-  def act' {α β γ : Shape} (u : β →ˢ α) : Expr ((α ⊕ β) ⊕ γ) → Expr (α ⊕ γ)
-    | .varLeft (.varLeft x) ◃ ts => .varLeft x ◃ (fun ⦃δ⦄ z => ⟦ assocLeft ⟧ʳ act' u (⟦ assocRight ⟧ʳ ts z))
-    | .varLeft (@Var.varRight _ _ δ y) ◃ ts =>
-      have u' := fun ⦃θ⦄ (z : Var θ δ) => ⟦ assocLeft ⟧ʳ act' u (⟦ assocRight ⟧ʳ ts z) ;
-      act (lift Var.varLeft ⊕ˢ u') (u y)
-    | .varRight z ◃ ts => .varRight z ◃ (fun ⦃_⦄ z =>  ⟦ assocLeft ⟧ʳ act' u (⟦ assocRight ⟧ʳ ts z))
+  def actS {α β γ δ : Shape} (u : β →ˢ α ⊕ γ) : Expr ((α ⊕ β) ⊕ δ) → Expr ((α ⊕ γ) ⊕ δ)
+    | .varLeft (@Var.varLeft _ _ δ x) ◃ ts => .varLeft (.varLeft x) ◃ (fun ⦃θ⦄ (y : Var θ δ) => ⟦ assocLeft ⟧ʳ actS u (⟦ assocRight ⟧ʳ ts y))
+    | .varLeft (@Var.varRight _ _ δ x) ◃ ts =>
+      ⟦ unRight ⟧ʳ actS (fun ⦃_⦄ y => ⟦ assocLeft ⟧ʳ actS u (⟦ assocRight ⟧ʳ ts y)) (⟦ @Var.varLeft _ 𝟘 ⟧ʳ u x)
+    | .varRight x ◃ ts => .varRight x ◃ (fun ⦃δ⦄ y =>  ⟦ assocLeft ⟧ʳ actS u (⟦ assocRight ⟧ʳ ts y))
+  termination_by e => (β.rank, Expr.sizeOf e)
+  decreasing_by
+  · apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
+  · apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
+  · apply Prod.Lex.left
+    apply rank_Var_lt x
+  · apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
 
-  def act {γ δ} (u : γ →ˢ δ) : Expr γ → Expr δ
-    | x ◃ ts =>
-      ⟦ unRight ⟧ʳ (act' (fun ⦃β⦄ y => act (u ⇑ˢ β) (ts y)) (⟦ @Var.varLeft _ 𝟘 ⟧ʳ u x))
+  def act' {α β γ : Shape} (u : β →ˢ α) : Expr ((α ⊕ β) ⊕ γ) → Expr (α ⊕ γ)
+    | .varLeft (@Var.varLeft _ _ δ x) ◃ ts => .varLeft x ◃ (fun ⦃θ⦄ (y : Var θ δ) => ⟦ assocLeft ⟧ʳ act' u (⟦ assocRight ⟧ʳ ts y))
+    | .varLeft (@Var.varRight _ _ δ x) ◃ ts => ⟦ unRight ⟧ʳ actS (fun ⦃_⦄ y => ⟦ assocLeft ⟧ʳ act' u (⟦ assocRight ⟧ʳ ts y)) (⟦ @Var.varLeft _ 𝟘 ⟧ʳ u x)
+    | .varRight x ◃ ts => .varRight x ◃ (fun ⦃δ⦄ y =>  ⟦ assocLeft ⟧ʳ act' u (⟦ assocRight ⟧ʳ ts y))
+  termination_by e => Expr.sizeOf e
+  decreasing_by
+  · rw [Renaming.eq_size] ; apply Expr.sizeOfArg
+  · rw [Renaming.eq_size] ; apply Expr.sizeOfArg
+  · rw [Renaming.eq_size] ; apply Expr.sizeOfArg
 
 end
+
+def act {γ δ} (u : γ →ˢ δ) : Expr γ → Expr δ
+  | x ◃ ts => ⟦ unRight ⟧ʳ (act' (fun ⦃β⦄ y => act (u ⇑ˢ β) (ts y)) (⟦ @Var.varLeft _ 𝟘 ⟧ʳ u x))
 
 def comp {γ δ θ} (u : γ →ˢ δ) (v : δ →ˢ θ) : γ →ˢ θ
 | β, x => act (v ⇑ˢ β) (u x)
