@@ -60,7 +60,7 @@ def extend_comp {γ δ η θ} {g : δ →ʳ η} {f : γ →ʳ δ}:
 def act {γ δ} (f : γ →ʳ δ) : Expr γ → Expr δ
   | x ◃ ts => f x ◃ (fun {{_}} y => act (f ⇑ʳ _) (ts y))
 
-notation:60 "⟦" f "⟧ʳ " e:61 => Renaming.act f e
+notation:60 " ⟦" f "⟧ʳ " e:61 => Renaming.act f e
 
 theorem act_comp {γ} {e : Expr γ} :
   ∀ {δ η} {f : γ →ʳ δ} {g : δ →ʳ η}, ⟦ g ∘ʳ f ⟧ʳ e = ⟦ g ⟧ʳ (⟦ f ⟧ʳ e) := by

@@ -50,28 +50,29 @@ def sum {α β γ} (u : α →ˢ γ) (v : β →ˢ γ) : α ⊕ β →ˢ γ
 @[inherit_doc]
 infix:30 " ⊕ˢ " => Substitution.sum
 
-mutual
+/-- The action of a substitution on an expression that is identity on a left and right part of a shape. -/
+def act' {α β γ δ : Shape} (u : β →ˢ α ⊕ γ) : Expr ((α ⊕ β) ⊕ δ) → Expr ((α ⊕ γ) ⊕ δ)
+  | .varLeft (.varLeft x) ◃ ts =>
+    .varLeft (.varLeft x) ◃ (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act' u (⟦ .assocRight ⟧ʳ ts y))
+  | .varLeft (.varRight x) ◃ ts =>
+    ⟦ .cancelZeroRight ⟧ʳ act' (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act' u (⟦ .assocRight ⟧ʳ ts y)) (⟦ .insertZeroRight ⟧ʳ u x)
+  | .varRight x ◃ ts =>
+    .varRight x ◃ (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act' u (⟦ .assocRight ⟧ʳ ts y))
+termination_by e => (β.rank, Expr.sizeOf e)
+decreasing_by
+· apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
+· apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
+· apply Prod.Lex.left
+  apply rank_Var_lt x
+· apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
 
-  def actS {α β γ δ : Shape} (u : β →ˢ α ⊕ γ) : Expr ((α ⊕ β) ⊕ δ) → Expr ((α ⊕ γ) ⊕ δ)
-    | .varLeft (@Var.varLeft _ _ δ x) ◃ ts => .varLeft (.varLeft x) ◃ (fun ⦃θ⦄ (y : Var θ δ) => ⟦ .assocLeft ⟧ʳ actS u (⟦ .assocRight ⟧ʳ ts y))
-    | .varLeft (@Var.varRight _ _ δ x) ◃ ts =>
-      ⟦ .cancelZeroRight ⟧ʳ actS (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ actS u (⟦ .assocRight ⟧ʳ ts y)) (⟦ @Var.varLeft _ 𝟘 ⟧ʳ u x)
-    | .varRight x ◃ ts => .varRight x ◃ (fun ⦃δ⦄ y =>  ⟦ .assocLeft ⟧ʳ actS u (⟦ .assocRight ⟧ʳ ts y))
-  termination_by e => (β.rank, Expr.sizeOf e)
-  decreasing_by
-  · apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
-  · apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
-  · apply Prod.Lex.left
-    apply rank_Var_lt x
-  · apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
-
-  def act' {α β γ : Shape} (u : β →ˢ α) (e : Expr ((α ⊕ β) ⊕ γ)) : Expr (α ⊕ γ) :=
-    ⟦ .cancelZeroRight ⇑ʳ γ ⟧ʳ @actS α β 𝟘 γ (fun θ y => ⟦ Var.varLeft ⇑ʳ θ ⟧ʳ u y) e
-
-end
-
+/-- The action of a substitution on an expression -/
 def act {γ δ} (u : γ →ˢ δ) : Expr γ → Expr δ
-  | x ◃ ts => ⟦ .cancelZeroRight ⟧ʳ (act' (fun ⦃β⦄ y => act (u ⇑ˢ β) (ts y)) (⟦ .insertZeroRight ⟧ʳ u x))
+  | x ◃ ts =>
+    ⟦ .cancelZeroRight ∘ʳ .cancelZeroRight ⟧ʳ act' (fun ⦃_⦄ y => ⟦ .insertZeroRight⇑ʳ _ ⟧ʳ act (u ⇑ˢ _) (ts y)) (⟦ .insertZeroRight ⟧ʳ u x)
+
+@[inherit_doc]
+notation:60 " ⟦" u "⟧ˢ " e:61 => Substitution.act u e
 
 /-- Composition of substitutions -/
 def comp {γ δ θ} (u : γ →ˢ δ) (v : δ →ˢ θ) : γ →ˢ θ
