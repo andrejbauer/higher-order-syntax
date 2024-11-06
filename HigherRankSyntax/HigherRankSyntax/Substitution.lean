@@ -81,4 +81,23 @@ def comp {γ δ θ} (u : γ →ˢ δ) (v : δ →ˢ θ) : γ →ˢ θ
 @[inherit_doc]
 notation:90 g:90 " ∘ˢ " f:91 => Substitution.comp f g
 
+/-- The extension of identity is identity -/
+def extend_id {γ δ} : @id γ ⇑ˢ δ = 𝟙ˢ := by
+  funext α x
+  cases x
+  case varRight => simp!
+  case varLeft x =>
+    dsimp! ; unfold id ; simp!
+    funext β y
+    rw [← Renaming.act_comp]
+    congr
+    funext δ z
+    cases z <;> simp! [Renaming.comp]
+
+/-- The action of the identity substitution -/
+def act_id {γ} (e : Expr γ) : ⟦ 𝟙ˢ ⟧ˢ e = e := by
+  induction e
+  case apply α δ x ts ih => sorry
+
+
 end Substitution
