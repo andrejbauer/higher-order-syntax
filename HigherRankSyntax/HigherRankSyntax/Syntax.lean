@@ -13,22 +13,22 @@ deriving Repr
 notation "𝟘" => Shape.empty
 
 @[inherit_doc]
-notation:max "⟦" e  "⟧" => Shape.slot e
-
-@[inherit_doc]
 notation (priority := default+1) γ:31 " ⊕ " δ:31 => Shape.oplus γ δ
 
-abbrev Arity := Shape
+/-- A synonym for a shape, used when we think of a shape as specifying
+    the arity of a variable. -/
+def Arity := Shape
 
+/-- The rank of a shape is the level of nesting of the slots -/
 @[reducible]
 def Shape.rank : Shape → Nat
 | 𝟘 => 0
-| ⟦ γ ⟧  => 1 + rank γ
+| .slot γ  => 1 + rank γ
 | γ ⊕ δ => max (rank γ) (rank δ)
 
 /-- Variables of given arity in a given shape -/
 inductive Var : Arity → Shape → Type where
-| varHere : ∀ {α : Arity}, Var α ⟦ α ⟧
+| varHere : ∀ {α : Arity}, Var α α.slot
 | varLeft : ∀ {γ δ} {{α}}, Var α γ → Var α (γ ⊕ δ)
 | varRight : ∀ {γ δ} {{α}}, Var α δ → Var α (γ ⊕ δ)
 
@@ -36,7 +36,7 @@ inductive Var : Arity → Shape → Type where
 def Shape.fold.{u} (γ : Shape) {A : Type u} (a : A) (f : A → ∀ ⦃α⦄, Var α γ → A) : A :=
   match γ with
   | 𝟘 => a
-  | ⟦ _ ⟧ => f a .varHere
+  | .slot _ => f a .varHere
   | γ₁ ⊕ γ₂ => γ₂.fold (γ₁.fold a (fun b _ x => f b x.varLeft)) (fun b _ x => f b x.varRight)
 
 theorem rank_Var_lt {α γ} (x : Var α γ) : α.rank < γ.rank := by
@@ -53,9 +53,12 @@ theorem rank_Var_lt {α γ} (x : Var α γ) : α.rank < γ.rank := by
       α.rank < β.rank := by assumption
            _ ≤ max δ.rank β.rank := by exact Nat.le_max_right δ.rank β.rank
 
+/-- Expressions over a given shape -/
 inductive Expr : Shape → Type where
+/-- Apply a variable to arguments -/
 | apply : ∀ {α γ}, Var α γ → (∀ {{β}}, Var β α → Expr (γ ⊕ β)) → Expr γ
 
+@[inherit_doc]
 infix:80 " ◃ " => Expr.apply
 
 @[reducible]

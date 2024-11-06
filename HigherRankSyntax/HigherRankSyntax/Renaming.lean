@@ -21,6 +21,26 @@ instance ShapeCat : CategoryTheory.Category Shape where
   id := @Renaming.id
   comp := comp
 
+@[reducible]
+def sum {γ δ θ} (f : γ →ʳ θ) (g : δ →ʳ θ) : γ ⊕ δ →ʳ θ
+| _, .varLeft x => f x
+| _, .varRight x => g x
+
+infix:30 " ⊕ʳ " => Renaming.sum
+
+@[reducible]
+def assocLeft {γ δ θ} : γ ⊕ (δ ⊕ θ) →ʳ (γ ⊕ δ) ⊕ θ :=
+  (.varLeft ∘ʳ .varLeft) ⊕ʳ ((.varLeft ∘ʳ .varRight) ⊕ʳ .varRight)
+
+@[reducible]
+def assocRight {γ δ θ} : (γ ⊕ δ) ⊕ θ →ʳ γ ⊕ (δ ⊕ θ) :=
+  (.varLeft ⊕ʳ (.varRight ∘ʳ .varLeft)) ⊕ʳ (.varRight ∘ʳ .varRight)
+
+def insertZeroRight {γ} : γ →ʳ γ ⊕ 𝟘 := .varLeft
+
+def cancelZeroRight {γ} : γ ⊕ 𝟘 →ʳ γ
+| _, .varLeft x => x
+
 def extend {γ δ} (f : γ →ʳ δ) (η) : γ ⊕ η →ʳ δ ⊕ η
 | _, .varLeft x => .varLeft (f x)
 | _, .varRight y => .varRight y
