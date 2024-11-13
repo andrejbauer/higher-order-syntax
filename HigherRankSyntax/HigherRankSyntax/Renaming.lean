@@ -36,29 +36,37 @@ def assocLeft {γ δ θ} : γ ⊕ (δ ⊕ θ) →ʳ (γ ⊕ δ) ⊕ θ :=
 def assocRight {γ δ θ} : (γ ⊕ δ) ⊕ θ →ʳ γ ⊕ (δ ⊕ θ) :=
   (.varLeft ⊕ʳ (.varRight ∘ʳ .varLeft)) ⊕ʳ (.varRight ∘ʳ .varRight)
 
+@[reducible]
 def insertZeroRight {γ} : γ →ʳ γ ⊕ 𝟘 := .varLeft
 
+@[reducible]
 def cancelZeroRight {γ} : γ ⊕ 𝟘 →ʳ γ
 | _, .varLeft x => x
 
-def extend {γ δ} (f : γ →ʳ δ) (η) : γ ⊕ η →ʳ δ ⊕ η
+def extendRight {γ δ} (f : γ →ʳ δ) (η) : γ ⊕ η →ʳ δ ⊕ η
 | _, .varLeft x => .varLeft (f x)
 | _, .varRight y => .varRight y
 
-infixl:95 " ⇑ʳ " => Renaming.extend
+infixl:95 " ʳ⇑ " => Renaming.extendRight
 
-def extend_id {γ η} : 𝟙ʳ ⇑ʳ η = @id (γ ⊕ η) := by
+def extendLeft {γ δ} (η) (f : γ →ʳ δ) : η ⊕ γ →ʳ η ⊕ δ
+| _, .varLeft x => .varLeft x
+| _, .varRight y => .varRight (f y)
+
+infixl:95 " ⇑ʳ " => Renaming.extendLeft
+
+def extend_id {γ η} : 𝟙ʳ ʳ⇑ η = @id (γ ⊕ η) := by
   funext α x
   rcases x with ⟨x, y⟩ <;> rfl
 
 def extend_comp {γ δ η θ} {g : δ →ʳ η} {f : γ →ʳ δ}:
-  (g ∘ʳ f) ⇑ʳ θ = (g ⇑ʳ θ) ∘ʳ (f ⇑ʳ θ) := by
+  (g ∘ʳ f) ʳ⇑ θ = (g ʳ⇑ θ) ∘ʳ (f ʳ⇑ θ) := by
   funext _ x
   cases x <;> rfl
 
 @[reducible]
 def act {γ δ} (f : γ →ʳ δ) : Expr γ → Expr δ
-  | x ◃ ts => f x ◃ (fun {{_}} y => act (f ⇑ʳ _) (ts y))
+  | x ◃ ts => f x ◃ (fun {{_}} y => act (f ʳ⇑ _) (ts y))
 
 notation:60 " ⟦" f "⟧ʳ " e:61 => Renaming.act f e
 

@@ -8,7 +8,7 @@ namespace Substitution
 
 /-- The identity substutition -/
 def id {γ} : γ →ˢ γ :=
-  fun {α} x => x.varLeft ◃ (fun {β} (y : Var β α) => ⟦ Var.varRight ⇑ʳ _ ⟧ʳ (id y))
+  fun {α} x => x.varLeft ◃ (fun {β} (y : Var β α) => ⟦ Var.varRight ʳ⇑ _ ⟧ʳ (id y))
 termination_by γ.rank
 decreasing_by apply rank_Var_lt ; assumption
 
@@ -22,7 +22,7 @@ def lift {γ δ} (f : γ →ʳ δ) : γ →ˢ δ :=
 /-- Extend a substutution on the right. This is generally used when
     a substitution needs to be used under a binder. -/
 def extend {γ δ} (u : γ →ˢ δ) η : γ ⊕ η →ˢ δ ⊕ η
-| _, .varLeft x => ⟦ Var.varLeft ⇑ʳ _ ⟧ʳ (u x)
+| _, .varLeft x => ⟦ Var.varLeft ʳ⇑ _ ⟧ʳ (u x)
 | _, .varRight y => 𝟙ˢ y.varRight
 
 @[inherit_doc]
@@ -30,7 +30,7 @@ infixl:95 " ⇑ˢ " => Substitution.extend
 
 /-- Compose a renaming and a substutition. -/
 def renaming_comp {α β γ} (f : β →ʳ γ) (u : α →ˢ β) : α →ˢ γ :=
-  fun ⦃δ⦄ x => ⟦ f ⇑ʳ δ ⟧ʳ u x
+  fun ⦃δ⦄ x => ⟦ f ʳ⇑ δ ⟧ʳ u x
 
 @[inherit_doc]
 infixr:95 " ʳ∘ˢ " => Substitution.renaming_comp
@@ -69,7 +69,11 @@ decreasing_by
 /-- The action of a substitution on an expression -/
 def act {γ δ} (u : γ →ˢ δ) : Expr γ → Expr δ
   | x ◃ ts =>
-    ⟦ .cancelZeroRight ∘ʳ .cancelZeroRight ⟧ʳ act' (fun ⦃_⦄ y => ⟦ .insertZeroRight⇑ʳ _ ⟧ʳ act (u ⇑ˢ _) (ts y)) (⟦ .insertZeroRight ⟧ʳ u x)
+    ⟦ .cancelZeroRight ⟧ʳ (
+      ⟦ (.cancelZeroRight ʳ⇑ 𝟘) ⟧ʳ
+        act'
+          (fun ⦃_⦄ y => ⟦ .insertZeroRightʳ⇑ _ ⟧ʳ act (u ⇑ˢ _) (ts y))
+          (⟦ .insertZeroRight ⟧ʳ u x))
 
 @[inherit_doc]
 notation:60 " ⟦" u "⟧ˢ " e:61 => Substitution.act u e
@@ -82,7 +86,7 @@ def comp {γ δ θ} (u : γ →ˢ δ) (v : δ →ˢ θ) : γ →ˢ θ
 notation:90 g:90 " ∘ˢ " f:91 => Substitution.comp f g
 
 /-- The extension of identity is identity -/
-def extend_id {γ δ} : @id γ ⇑ˢ δ = 𝟙ˢ := by
+def extend_id (γ δ) : @id γ ⇑ˢ δ = 𝟙ˢ := by
   funext α x
   cases x
   case varRight => simp!
@@ -94,10 +98,40 @@ def extend_id {γ δ} : @id γ ⇑ˢ δ = 𝟙ˢ := by
     funext δ z
     cases z <;> simp! [Renaming.comp]
 
+def act'_rename {α β γ δ θ : Shape} (u : β →ˢ α ⊕ γ) (f : θ →ʳ β) (e : Expr ((α ⊕ θ) ⊕ δ)):
+  act' u (⟦ (α ⇑ʳ f) ʳ⇑ δ ⟧ʳ e) = act' (u ˢ∘ʳ f) e := by
+  sorry
+
+def act_rename {β γ δ} (u : γ →ˢ δ) (f : β →ʳ γ) (e : Expr β) :
+  ⟦ u ⟧ˢ (⟦ f ⟧ʳ e) = ⟦ u ˢ∘ʳ f ⟧ˢ e := by
+  obtain ⟨x, ts⟩ := e
+  unfold act ; simp
+
+def rename_act'_alternative {α γ θ : Shape} (f : α ⊕ γ →ʳ α ⊕ θ) {β δ} (u : β →ˢ α ⊕ γ) (e : Expr ((α ⊕ β) ⊕ δ)):
+   ⟦ f ʳ⇑ δ ⟧ʳ act' u e = act' (f ʳ∘ˢ u) e := by
+  sorry
+
+def rename_act' {γ θ : Shape} (f : γ →ʳ θ) {α β δ} (u : β →ˢ α ⊕ γ) (e : Expr ((α ⊕ β) ⊕ δ)):
+   ⟦ (α ⇑ʳ f) ʳ⇑ δ ⟧ʳ act' u e = act' ((α ⇑ʳ f) ʳ∘ˢ u) e := by
+  sorry
+
+def rename_act {γ δ θ} (f : δ →ʳ θ) (u : γ →ˢ δ) (e : Expr γ) :
+  ⟦ f ⟧ʳ (⟦ u ⟧ˢ e) = ⟦ f ʳ∘ˢ u ⟧ˢ e := by
+  obtain ⟨x, ts⟩ := e
+  unfold act
+
 /-- The action of the identity substitution -/
 def act_id {γ} (e : Expr γ) : ⟦ 𝟙ˢ ⟧ˢ e = e := by
   induction e
-  case apply α δ x ts ih => sorry
-
+  case apply α δ x ts ih =>
+    unfold act
+    unfold id
+    simp [extend_id δ, ih, Renaming.insertZeroRight, Renaming.act]
+    rw [act']
+    simp [Renaming.act]
+    constructor
+    · simp [Renaming.cancelZeroRight, Renaming.extendRight]
+    · funext θ y
+      sorry
 
 end Substitution
