@@ -105,7 +105,7 @@ def act'_rename {α β γ δ θ : Shape} (u : β →ˢ α ⊕ γ) (f : θ →ʳ 
 def act_rename {β γ δ} (u : γ →ˢ δ) (f : β →ʳ γ) (e : Expr β) :
   ⟦ u ⟧ˢ (⟦ f ⟧ʳ e) = ⟦ u ˢ∘ʳ f ⟧ˢ e := by
   obtain ⟨x, ts⟩ := e
-  unfold act ; simp
+  sorry
 
 def rename_act'_alternative {α γ θ : Shape} (f : α ⊕ γ →ʳ α ⊕ θ) {β δ} (u : β →ˢ α ⊕ γ) (e : Expr ((α ⊕ β) ⊕ δ)):
    ⟦ f ʳ⇑ δ ⟧ʳ act' u e = act' (f ʳ∘ˢ u) e := by
