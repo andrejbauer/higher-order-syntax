@@ -66,10 +66,6 @@ def Expr.sizeOf {γ} : Expr γ → Nat
 | @Expr.apply α _ _ ts => 1 + α.fold 0 (fun n _ y => n + (ts y).sizeOf)
 
 theorem Expr.sizeOfArg {α γ} (x : Var α γ) (ts : ∀ {{β}}, Var β α → Expr (γ ⊕ β)) {δ} (y : Var δ α) :
-  (ts y).sizeOf < (x ◃ ts).sizeOf := by
-  induction γ
-  · cases x
-  · sorry
-  · sorry
+  (ts y).sizeOf < (x ◃ ts).sizeOf := sorry
 
 instance {γ} : SizeOf (Expr γ) where sizeOf := Expr.sizeOf

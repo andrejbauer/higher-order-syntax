@@ -53,46 +53,59 @@ infix:30 " ⊕ˢ " => Substitution.sum
 
 mutual
 
-def inst' {α β γ} (u : β →ˢ α ⊕ γ): Expr (α ⊕ β) → Expr (α ⊕ γ)
-| .varLeft x ◃ ts => .varLeft x ◃ (fun ⦃_⦄ y => act' u (ts y))
-| .varRight x ◃ ts => inst' (lift .varRight ⊕ˢ (fun ⦃_⦄ y => act' u (ts y))) (⟦ .assocRight ⟧ʳ u x)
+def act_middle {α β γ δ : Shape} (u : β →ˢ α ⊕ γ) : Expr ((α ⊕ β) ⊕ δ) → Expr ((α ⊕ γ) ⊕ δ)
+  | .varLeft (.varLeft x) ◃ ts => .varLeft (.varLeft x) ◃ (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act_middle u (⟦ .assocRight ⟧ʳ ts y))
+  | .varLeft (.varRight x) ◃ ts => act_right (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act_middle u (⟦ .assocRight ⟧ʳ ts y)) (u x)
+  | .varRight x ◃ ts => .varRight x ◃ (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act_middle u (⟦ .assocRight ⟧ʳ ts y))
 termination_by e => (β.rank, Expr.sizeOf e)
 decreasing_by
-· sorry
-· sorry
-· sorry
+  · apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
+  · apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
+  · apply Prod.Lex.left ; apply rank_Var_lt x
+  · apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
 
--- ⟦ .cancelZeroRight ⟧ʳ act' (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act' u (⟦ .assocRight ⟧ʳ ts y))
-/-- The action of a substitution on an expression that is identity on a left and right part of a shape. -/
-def act' {α β γ δ : Shape} (u : β →ˢ α ⊕ γ) : Expr ((α ⊕ β) ⊕ δ) → Expr ((α ⊕ γ) ⊕ δ)
-  | .varLeft (.varLeft x) ◃ ts   =>  .varLeft (.varLeft x) ◃ (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act' u (⟦ .assocRight ⟧ʳ ts y))
-  | .varLeft (.varRight x) ◃ ts  =>  inst' (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act' u (⟦ .assocRight ⟧ʳ ts y)) (u x)
-  | .varRight x ◃ ts             =>  .varRight x ◃ (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act' u (⟦ .assocRight ⟧ʳ ts y))
+def act_left {α β γ} (u : α →ˢ β): Expr (α ⊕ γ) → Expr (β ⊕ γ)
+  | .varLeft x ◃ ts => act_right (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act_left u (⟦ .assocRight ⟧ʳ ts y)) (u x)
+  | .varRight x ◃ ts => .varRight x ◃ (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act_left u (⟦ .assocRight ⟧ʳ ts y))
+termination_by e => (α.rank, Expr.sizeOf e)
+decreasing_by
+  · apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
+  · apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
+
+def act_right {α β γ} (u : β →ˢ α ⊕ γ) : Expr (α ⊕ β) → Expr (α ⊕ γ)
+  | .varLeft x ◃ ts => .varLeft x ◃ (fun ⦃_⦄ y => act_middle u (ts y))
+  | .varRight x ◃ ts => inst (fun ⦃_⦄ y => act_middle u (ts y)) (u x)
 termination_by e => (β.rank, Expr.sizeOf e)
 decreasing_by
-· apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
-· apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
-· apply Prod.Lex.left
-  apply rank_Var_lt x
-· apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
+  · apply Prod.Lex.right ; apply Expr.sizeOfArg
+  · apply Prod.Lex.right ; apply Expr.sizeOfArg
+  · apply Prod.Lex.left ; apply rank_Var_lt x
 
-end
+def inst_left {α β γ} (u : β →ˢ α) : Expr ((α ⊕ β) ⊕ γ) → Expr (α ⊕ γ)
+  | .varLeft (.varLeft x) ◃ ts => .varLeft x ◃ (fun ⦃δ⦄ y => ⟦ .assocLeft ⟧ʳ inst_left u (⟦ .assocRight ⟧ʳ ts y))
+  | .varLeft (.varRight x) ◃ ts => act_right (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ inst_left u (⟦ .assocRight ⟧ʳ ts y)) (u x)
+  | .varRight x ◃ ts => .varRight x ◃ (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ inst_left u (⟦ .assocRight ⟧ʳ ts y))
+termination_by e => (β.rank, Expr.sizeOf e)
+decreasing_by
+  · apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
+  · apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
+  · apply Prod.Lex.left ; apply rank_Var_lt x
+  · apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
 
-/-- The action of a substitution on an expression -/
-def act.I {γ δ} (u : γ →ˢ δ) (e : Expr γ) : Expr δ := ⟦ .cancelZeroLeft ⟧ʳ inst' (.varRight ʳ∘ˢ u) (⟦ .insertZeroLeft ⟧ʳ e)
+def inst {α β} (u : β →ˢ α) : Expr (α ⊕ β) → Expr α
+  | .varLeft x ◃ ts => x ◃ (fun ⦃_⦄ y => inst_left u (ts y))
+  | .varRight x ◃ ts => inst (fun ⦃_⦄ y => inst_left u (ts y)) (u x)
+termination_by e => (β.rank, Expr.sizeOf e)
+decreasing_by
+  · apply Prod.Lex.right ; apply Expr.sizeOfArg
+  · apply Prod.Lex.right ; apply Expr.sizeOfArg
+  · apply Prod.Lex.left ; apply rank_Var_lt x
 
-/-- The action of a substitution on an expression -/
-def act.II {γ δ} (u : γ →ˢ δ) : Expr γ → Expr δ
-  | x ◃ ts => ⟦ .cancelZeroRight ⟧ʳ (inst' (fun ⦃_⦄ y => ⟦ .insertZeroRightʳ⇑ _ ⟧ʳ act.II (u ⇑ˢ _) (ts y)) (u x))
+/-- The action of a substutition on an expression -/
+def act {α β} (u : α →ˢ β): Expr α → Expr β
+| x ◃ ts => inst (fun ⦃_⦄ y => act_left u (ts y)) (u x)
 
-/-- The action of a substitution on an expression -/
-def act.III {γ δ} (u : γ →ˢ δ) : Expr γ → Expr δ
-  | x ◃ ts =>
-    ⟦ .cancelZeroRight ⟧ʳ (
-      ⟦ (.cancelZeroRight ʳ⇑ 𝟘) ⟧ʳ
-        act'
-          (fun ⦃_⦄ y => ⟦ .insertZeroRightʳ⇑ _ ⟧ʳ act.III (u ⇑ˢ _) (ts y))
-          (⟦ .insertZeroRight ⟧ʳ u x))
+end -- mutual
 
 @[inherit_doc]
 notation:60 " ⟦" u "⟧ˢ " e:61 => Substitution.act u e
@@ -116,41 +129,5 @@ def extend_id (γ δ) : @id γ ⇑ˢ δ = 𝟙ˢ := by
     congr
     funext δ z
     cases z <;> simp! [Renaming.comp]
-
-def act'_rename {α β γ δ θ : Shape} (u : β →ˢ α ⊕ γ) (f : θ →ʳ β) (e : Expr ((α ⊕ θ) ⊕ δ)):
-  act' u (⟦ (α ⇑ʳ f) ʳ⇑ δ ⟧ʳ e) = act' (u ˢ∘ʳ f) e := by
-  sorry
-
-def act_rename {β γ δ} (u : γ →ˢ δ) (f : β →ʳ γ) (e : Expr β) :
-  ⟦ u ⟧ˢ (⟦ f ⟧ʳ e) = ⟦ u ˢ∘ʳ f ⟧ˢ e := by
-  obtain ⟨x, ts⟩ := e
-  sorry
-
-def rename_act'_alternative {α γ θ : Shape} (f : α ⊕ γ →ʳ α ⊕ θ) {β δ} (u : β →ˢ α ⊕ γ) (e : Expr ((α ⊕ β) ⊕ δ)):
-   ⟦ f ʳ⇑ δ ⟧ʳ act' u e = act' (f ʳ∘ˢ u) e := by
-  sorry
-
-def rename_act' {γ θ : Shape} (f : γ →ʳ θ) {α β δ} (u : β →ˢ α ⊕ γ) (e : Expr ((α ⊕ β) ⊕ δ)):
-   ⟦ (α ⇑ʳ f) ʳ⇑ δ ⟧ʳ act' u e = act' ((α ⇑ʳ f) ʳ∘ˢ u) e := by
-  sorry
-
-def rename_act {γ δ θ} (f : δ →ʳ θ) (u : γ →ˢ δ) (e : Expr γ) :
-  ⟦ f ⟧ʳ (⟦ u ⟧ˢ e) = ⟦ f ʳ∘ˢ u ⟧ˢ e := by
-  obtain ⟨x, ts⟩ := e
-  unfold act
-
-/-- The action of the identity substitution -/
-def act_id {γ} (e : Expr γ) : ⟦ 𝟙ˢ ⟧ˢ e = e := by
-  induction e
-  case apply α δ x ts ih =>
-    unfold act
-    unfold id
-    simp [extend_id δ, ih, Renaming.insertZeroRight, Renaming.act]
-    rw [act']
-    simp [Renaming.act]
-    constructor
-    · simp [Renaming.cancelZeroRight, Renaming.extendRight]
-    · funext θ y
-      sorry
 
 end Substitution
