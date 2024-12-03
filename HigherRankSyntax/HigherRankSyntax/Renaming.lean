@@ -43,6 +43,13 @@ def insertZeroRight {γ} : γ →ʳ γ ⊕ 𝟘 := .varLeft
 def cancelZeroRight {γ} : γ ⊕ 𝟘 →ʳ γ
 | _, .varLeft x => x
 
+@[reducible]
+def insertZeroLeft {γ} : γ →ʳ 𝟘 ⊕ γ := .varRight
+
+@[reducible]
+def cancelZeroLeft {γ} : 𝟘 ⊕ γ →ʳ γ
+| _, .varRight x => x
+
 def extendRight {γ δ} (f : γ →ʳ δ) (η) : γ ⊕ η →ʳ δ ⊕ η
 | _, .varLeft x => .varLeft (f x)
 | _, .varRight y => .varRight y

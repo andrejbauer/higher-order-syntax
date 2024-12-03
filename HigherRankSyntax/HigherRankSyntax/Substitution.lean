@@ -1,3 +1,4 @@
+
 import HigherRankSyntax.Syntax
 import HigherRankSyntax.Renaming
 
@@ -50,14 +51,18 @@ def sum {α β γ} (u : α →ˢ γ) (v : β →ˢ γ) : α ⊕ β →ˢ γ
 @[inherit_doc]
 infix:30 " ⊕ˢ " => Substitution.sum
 
+mutual
+
+def inst' {α β γ} (u : β →ˢ α ⊕ γ): Expr (α ⊕ β) → Expr (α ⊕ γ)
+| .varLeft x ◃ ts => .varLeft x ◃ (fun ⦃_⦄ y => act' u (ts y))
+| .varRight x ◃ ts => inst' (lift .varRight ⊕ˢ (fun ⦃_⦄ y => act' u (ts y))) (⟦ .assocRight ⟧ʳ u x)
+
+-- ⟦ .cancelZeroRight ⟧ʳ act' (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act' u (⟦ .assocRight ⟧ʳ ts y))
 /-- The action of a substitution on an expression that is identity on a left and right part of a shape. -/
 def act' {α β γ δ : Shape} (u : β →ˢ α ⊕ γ) : Expr ((α ⊕ β) ⊕ δ) → Expr ((α ⊕ γ) ⊕ δ)
-  | .varLeft (.varLeft x) ◃ ts =>
-    .varLeft (.varLeft x) ◃ (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act' u (⟦ .assocRight ⟧ʳ ts y))
-  | .varLeft (.varRight x) ◃ ts =>
-    ⟦ .cancelZeroRight ⟧ʳ act' (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act' u (⟦ .assocRight ⟧ʳ ts y)) (⟦ .insertZeroRight ⟧ʳ u x)
-  | .varRight x ◃ ts =>
-    .varRight x ◃ (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act' u (⟦ .assocRight ⟧ʳ ts y))
+  | .varLeft (.varLeft x) ◃ ts   =>  .varLeft (.varLeft x) ◃ (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act' u (⟦ .assocRight ⟧ʳ ts y))
+  | .varLeft (.varRight x) ◃ ts  =>  inst' (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act' u (⟦ .assocRight ⟧ʳ ts y)) (u x)
+  | .varRight x ◃ ts             =>  .varRight x ◃ (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act' u (⟦ .assocRight ⟧ʳ ts y))
 termination_by e => (β.rank, Expr.sizeOf e)
 decreasing_by
 · apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
@@ -66,13 +71,22 @@ decreasing_by
   apply rank_Var_lt x
 · apply Prod.Lex.right ; rw [Renaming.eq_size] ; apply Expr.sizeOfArg
 
+end
+
 /-- The action of a substitution on an expression -/
-def act {γ δ} (u : γ →ˢ δ) : Expr γ → Expr δ
+def act.I {γ δ} (u : γ →ˢ δ) (e : Expr γ) : Expr δ := ⟦ .cancelZeroLeft ⟧ʳ inst' (.varRight ʳ∘ˢ u) (⟦ .insertZeroLeft ⟧ʳ e)
+
+/-- The action of a substitution on an expression -/
+def act.II {γ δ} (u : γ →ˢ δ) : Expr γ → Expr δ
+  | x ◃ ts => ⟦ .cancelZeroRight ⟧ʳ (inst' (fun ⦃_⦄ y => ⟦ .insertZeroRightʳ⇑ _ ⟧ʳ act.II (u ⇑ˢ _) (ts y)) (u x))
+
+/-- The action of a substitution on an expression -/
+def act.III {γ δ} (u : γ →ˢ δ) : Expr γ → Expr δ
   | x ◃ ts =>
     ⟦ .cancelZeroRight ⟧ʳ (
       ⟦ (.cancelZeroRight ʳ⇑ 𝟘) ⟧ʳ
         act'
-          (fun ⦃_⦄ y => ⟦ .insertZeroRightʳ⇑ _ ⟧ʳ act (u ⇑ˢ _) (ts y))
+          (fun ⦃_⦄ y => ⟦ .insertZeroRightʳ⇑ _ ⟧ʳ act.III (u ⇑ˢ _) (ts y))
           (⟦ .insertZeroRight ⟧ʳ u x))
 
 @[inherit_doc]
