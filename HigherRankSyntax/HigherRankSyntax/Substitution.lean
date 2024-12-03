@@ -56,6 +56,11 @@ mutual
 def inst' {α β γ} (u : β →ˢ α ⊕ γ): Expr (α ⊕ β) → Expr (α ⊕ γ)
 | .varLeft x ◃ ts => .varLeft x ◃ (fun ⦃_⦄ y => act' u (ts y))
 | .varRight x ◃ ts => inst' (lift .varRight ⊕ˢ (fun ⦃_⦄ y => act' u (ts y))) (⟦ .assocRight ⟧ʳ u x)
+termination_by e => (β.rank, Expr.sizeOf e)
+decreasing_by
+· sorry
+· sorry
+· sorry
 
 -- ⟦ .cancelZeroRight ⟧ʳ act' (fun ⦃_⦄ y => ⟦ .assocLeft ⟧ʳ act' u (⟦ .assocRight ⟧ʳ ts y))
 /-- The action of a substitution on an expression that is identity on a left and right part of a shape. -/
